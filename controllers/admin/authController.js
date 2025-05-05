@@ -1,0 +1,201 @@
+const Admin = require("../../models/Admin");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const validator = require("validator");
+
+const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,32}$/;
+
+// For admin signup
+
+const signUp = async (req, res, next) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      res.status(400);
+      throw new Error("Please fill all the fields");
+    }
+
+    console.log("Received body:", req.body);
+
+    if (!usernameRegex.test(username)) {
+      res.status(400);
+      throw new Error("Username must be valid");
+    }
+
+    const existingUser = await Admin.findOne({ email });
+    if (existingUser) {
+      res.status(400);
+      throw new Error("Email already exists");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const admin = new Admin({
+      username,
+      email,
+      password: hashedPassword,
+    });
+    await admin.save();
+
+    const accessToken = jwt.sign(
+      { id: admin._id, email: admin.email },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: admin._id, email: admin.email },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
+    });
+
+    return res.status(201).json({
+      message: "User created successfully",
+      username: admin.username,
+      accessToken,
+    });
+  } catch (error) {
+    next(error); // Send error to centralized error handler
+  }
+};
+
+// ..For admin login
+
+const Login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400);
+      throw new Error("Please enter both email and password");
+    }
+
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      res.status(400);
+      throw new Error("Invalid email or password");
+    }
+
+    const isValidPassword = await bcrypt.compare(password, admin.password);
+    if (!isValidPassword) {
+      res.status(400);
+      throw new Error("Invalid email or password");
+    }
+
+    const accessToken = jwt.sign(
+      { id: admin._id, email: admin.email },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: admin._id, email: admin.email },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
+    });
+
+    return res.status(200).json({
+      message: "Login successful",
+      username: admin.username,
+      accessToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+//For restting the Password
+
+const checkResetToken = async (req, res, next) => {
+  try {
+    const resetToken = req.cookies?.resetToken;
+
+    if (!resetToken) {
+      const error = new Error("Unauthorized or token expired");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
+    } catch (err) {
+      err.statusCode = 401;
+      err.message = "Invalid or expired token";
+      throw err;
+    }
+
+    const admin = await Admin.findOne({ email: decoded.email });
+    if (!admin) {
+      const error = new Error("Admin not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    res.status(200).json({ message: "Token verified" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+    try {
+      const { newPassword, resetToken } = req.body;
+  
+      if (!newPassword) {
+        const error = new Error("New password is required");
+        error.statusCode = 400;
+        throw error;
+      }
+  
+      if (!resetToken) {
+        const error = new Error("Unauthorized or token is required");
+        error.statusCode = 401;
+        throw error;
+      }
+  
+      // Password validation regex (adjust according to your requirements)
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+      if (!passwordRegex.test(newPassword)) {
+        const error = new Error(
+          "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character, and be no more than 32 characters long"
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+  
+      const decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
+      const admin = await Admin.findOne({ email: decoded.email });
+      if (!admin) {
+        const error = new Error("Admin not found");
+        error.statusCode = 404;
+        throw error;
+      }
+  
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      admin.password = hashedPassword;
+      await admin.save();
+  
+      res.status(200).json({ message: "Password reset successfully" });
+  
+    } catch (error) {
+      next(error); // Pass to centralized error handler
+    }
+  };
+module.exports = { signUp, Login, checkResetToken, resetPassword, resetPassword };
