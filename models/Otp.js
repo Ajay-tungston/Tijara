@@ -15,6 +15,10 @@ const otpSchema = new mongoose.Schema({
       default: Date.now,
       expires: 60 * 5,
     },
+    role:{
+      type:String,
+      required:true
+    },
   });
   otpSchema.index({ otp: 1 }); 
 

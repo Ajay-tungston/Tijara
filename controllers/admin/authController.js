@@ -2,6 +2,8 @@ const Admin = require("../../models/Admin");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
+const Buyer = require("../../models/Buyer");
+const Seller = require("../../models/Seller");
 
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const passwordRegex =
@@ -36,6 +38,7 @@ const signUp = async (req, res, next) => {
       username,
       email,
       password: hashedPassword,
+      role: "admin",
     });
     await admin.save();
 
@@ -92,13 +95,13 @@ const Login = async (req, res, next) => {
     }
 
     const accessToken = jwt.sign(
-      { id: admin._id, email: admin.email },
+      { id: admin._id, email: admin.email, role: admin.role },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "1h" }
     );
 
     const refreshToken = jwt.sign(
-      { id: admin._id, email: admin.email },
+      { id: admin._id, email: admin.email, role: admin.role },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
@@ -114,11 +117,48 @@ const Login = async (req, res, next) => {
       message: "Login successful",
       username: admin.username,
       accessToken,
+      role: admin.role,
     });
   } catch (error) {
     next(error);
   }
 };
+
+// const refresh=async(req,res)=>{
+//   try {
+//       const cookies = req.cookies;
+//       if (!cookies || !cookies.jwt) {
+//         return res
+//           .status(401)
+//           .json({ message: "Please login first , unauthorized" });
+//       }
+//       const refreshToken = cookies.jwt;
+//       jwt.verify(
+//         refreshToken,
+//         process.env.REFRESH_TOKEN_SECRET,
+//         async (err, decoded) => {
+//           if (err) {
+//             return res.status(403).json({ message: "Invalid token" });
+//           }
+//           const { id } = decoded;
+//           const foundUser = await Admin.findById(id);
+
+//           if (!foundUser) {
+//             return res.status(404).json({ message: "Admin not found" });
+//           }
+//           const accessToken = jwt.sign(
+//               { id: foundUser._id, email: foundUser.email },
+//               process.env.ACCESS_TOKEN_SECRET,
+//               { expiresIn: "1h" }
+//             );
+//            return res.status(200).json({ message: "refresh token successfull", accessToken });
+//         }
+//       );
+//   } catch (error) {
+//       console.log(error);
+//       return res.status(500).json({ message: "server error" });
+//   }
+// }
 
 //For restting the Password
 
@@ -155,47 +195,79 @@ const checkResetToken = async (req, res, next) => {
 };
 
 const resetPassword = async (req, res, next) => {
-    try {
-      const { newPassword, resetToken } = req.body;
-  
-      if (!newPassword) {
-        const error = new Error("New password is required");
-        error.statusCode = 400;
-        throw error;
-      }
-  
-      if (!resetToken) {
-        const error = new Error("Unauthorized or token is required");
-        error.statusCode = 401;
-        throw error;
-      }
-  
-      // Password validation regex (adjust according to your requirements)
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
-      if (!passwordRegex.test(newPassword)) {
-        const error = new Error(
-          "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character, and be no more than 32 characters long"
-        );
-        error.statusCode = 400;
-        throw error;
-      }
-  
-      const decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
-      const admin = await Admin.findOne({ email: decoded.email });
-      if (!admin) {
-        const error = new Error("Admin not found");
-        error.statusCode = 404;
-        throw error;
-      }
-  
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      admin.password = hashedPassword;
-      await admin.save();
-  
-      res.status(200).json({ message: "Password reset successfully" });
-  
-    } catch (error) {
-      next(error); // Pass to centralized error handler
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      const error = new Error("New password is required");
+      error.statusCode = 400;
+      throw error;
     }
-  };
-module.exports = { signUp, Login, checkResetToken, resetPassword, resetPassword };
+    const resetToken = req.cookies?.resetToken;
+    if (!resetToken) {
+      const error = new Error("Unauthorized or token is required");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Password validation regex (adjust according to your requirements)
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+    if (!passwordRegex.test(newPassword)) {
+      const error = new Error(
+        "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character, and be no more than 32 characters long"
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const decoded = jwt.verify(resetToken, process.env.RESET_TOKEN_SECRET);
+    const admin = await Admin.findOne({ email: decoded.email });
+    if (!admin) {
+      const error = new Error("Admin not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    admin.password = hashedPassword;
+    await admin.save();
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    next(error); // Pass to centralized error handler
+  }
+};
+
+const updateUserStatus = async (req, res) => {
+  const { userId, role, status } = req.body;
+
+  if (!["approved", "rejected"].includes(status)) {
+    return res
+      .status(400)
+      .json({ message: "Status must be 'approved' or 'rejected'" });
+  }
+
+  const Model = role === "buyer" ? Buyer : role === "seller" ? Seller : null;
+  if (!Model) {
+    return res.status(400).json({ message: "Invalid role provided" });
+  }
+
+  const user = await Model.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: `${role} not found` });
+  }
+
+  user.status = status;
+  await user.save();
+
+  res.status(200).json({ message: `${role} status updated to ${status}` });
+};
+
+module.exports = {
+  signUp,
+  Login,
+  checkResetToken,
+  resetPassword,
+  updateUserStatus,
+};

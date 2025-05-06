@@ -1,28 +1,41 @@
 const mongoose = require("mongoose");
 
-const buyerSchema = new mongoose.Schema({
-  buyerName: {
-    type: String,
-    required: true,
+const buyerSchema = new mongoose.Schema(
+  {
+    buyerName: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 8, // Enforce strong passwords
+    },
+    role: {
+      type: String,
+      default: "buyer",
+      enum: ["buyer"],
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
   },
-  phone: {
-    type: String,
-    required: true,
-    unique: true, // Ensure no duplicate phone numbers
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true, // Also make email unique
-    lowercase: true,
-    trim: true,
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 8, // Enforce strong passwords
-  },
-});
+
+  { timestamps: true }
+);
 
 const Buyer = mongoose.model("Buyer", buyerSchema);
 module.exports = Buyer;

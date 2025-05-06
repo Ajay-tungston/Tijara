@@ -19,6 +19,8 @@ app.use("/welcome", (req, res) => {
 
 app.use("/admin/auth", require("./routes/admin/authRoutes"));
 app.use("/buyer", require("./routes/buyer/buyerRoutes"));
+app.use("/seller", require("./routes/seller/sellerRoutes"));
+
 
 const errorHandler = require("./middleware/errorHandler");
 app.use(errorHandler);
