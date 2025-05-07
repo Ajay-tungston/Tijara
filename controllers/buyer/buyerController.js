@@ -173,4 +173,30 @@ const resetPassword = async (req, res, next) => {
       next(error); // Pass to centralized error handler
     }
   };
-  module.exports={registerBuyer, loginBuyer,checkResetToken,resetPassword};
+
+  const editBuyer = async (req, res) => {
+    try {
+      const buyerId = req.user.id; // ID from JWT
+      const updates = req.body;
+  
+      if (req.user.role !== "buyer") {
+        return res.status(403).json({ message: "Unauthorized " });
+      }
+  
+      const updatedBuyer = await Buyer.findByIdAndUpdate(buyerId, updates, { new: true });
+  
+      if (!updatedBuyer) {
+        return res.status(404).json({ message: "Buyer not found" });
+      }
+  
+      res.status(200).json({ message: "Buyer updated successfully", buyer: updatedBuyer });
+    } catch (error) {
+      console.error("Edit buyer error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
+  
+  
+
+  
+  module.exports={registerBuyer, loginBuyer,checkResetToken,resetPassword, editBuyer };

@@ -210,9 +210,34 @@ const checkResetToken = async (req, res, next) => {
         next(error); // Pass to centralized error handler
       }
     };
+
+    const editSeller = async (req, res) => {
+      try {
+        const { id } = req.params;
+        const updates = req.body;
+    
+        // Ensure user is either the seller themself or admin
+        if (req.user.role !== "admin" && (req.user.role !== "seller" || req.user.id !== id)) {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
+    
+        const updatedSeller = await Seller.findByIdAndUpdate(id, updates, { new: true });
+        if (!updatedSeller) {
+          return res.status(404).json({ message: "Seller not found" });
+        }
+    
+        res.status(200).json({ message: "Seller updated successfully", seller: updatedSeller });
+      } catch (error) {
+        console.error("Edit seller error:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    };
+
+    
 module.exports = {
   registerSeller,
   loginSeller,
   checkResetToken,
   resetPassword,
+  editSeller,
 };
