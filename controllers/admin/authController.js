@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Buyer = require("../../models/Buyer");
 const Seller = require("../../models/Seller");
+const userModels = require("../../utils/userModals");
+const Agent = require("../../models/Agent");
 
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const passwordRegex =
@@ -264,10 +266,132 @@ const updateUserStatus = async (req, res) => {
   res.status(200).json({ message: `${role} status updated to ${status}` });
 };
 
+const getAllUsers = async (req, res, next) => {
+  try {
+    const { role, search = "", page = 1, limit = 10, status } = req.query;
+
+    if (!["seller", "buyer"].includes(role)) {
+      return res
+        .status(400)
+        .json({ message: "Role must be 'seller' or 'buyer'" });
+    }
+
+    const UserModel = userModels[role];
+    if (!UserModel) {
+      return res.status(404).json({ message: "User model not found" });
+    }
+
+    const nameField = role === "seller" ? "sellerName" : "buyerName";
+
+    const query = {
+      $or: [
+        { [nameField]: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    if (status) {
+      query.status = status;
+    }
+
+    const skip = Math.max((parseInt(page) - 1) * parseInt(limit), 0);
+
+    const total = await UserModel.countDocuments(query);
+    const users = await UserModel.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.status(200).json({
+      users,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getUserById = async (req, res, next) => {
+  try {
+    const { role, id } = req.params;
+
+    if (!["seller", "buyer"].includes(role)) {
+      return res
+        .status(400)
+        .json({ message: "Role must be 'seller' or 'buyer'" });
+    }
+
+    const UserModel = userModels[role];
+    if (!UserModel) {
+      return res.status(404).json({ message: "User model not found" });
+    }
+
+    const user = await UserModel.findById(id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: `${role} not found with ID: ${id}` });
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addAgent = async (req, res) => {
+  try {
+    const { name, email, phone, address } = req.body;
+
+    if (!name || !email || !phone || !address) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const existing = await Agent.findOne({ $or: [{ email }, { phone }] });
+    if (existing) {
+      return res
+        .status(409)
+        .json({ message: "Agent with this email or phone already exists" });
+    }
+
+    const newAgent = new Agent({ name, email, phone, address });
+    await newAgent.save();
+
+    res
+      .status(201)
+      .json({ message: "Agent added successfully", agent: newAgent });
+  } catch (error) {
+   next(error);
+  }
+};
+
+const deleteUser = async (req, res) => {
+  const { role, id } = req.params;
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Unauthorized: Admin only" });
+  }
+
+  const Model = userModels[role];
+  if (!Model) return res.status(400).json({ message: "Invalid role" });
+
+  const deleted = await Model.findByIdAndDelete(id);
+  if (!deleted) return res.status(404).json({ message: `${role} not found` });
+
+  res.status(200).json({ message: `${role} deleted successfully` });
+};
+
+
 module.exports = {
   signUp,
   Login,
   checkResetToken,
   resetPassword,
   updateUserStatus,
+  getAllUsers,
+  getUserById,
+  addAgent,
+  deleteUser
 };

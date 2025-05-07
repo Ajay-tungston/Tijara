@@ -20,6 +20,8 @@ app.use("/welcome", (req, res) => {
 app.use("/admin/auth", require("./routes/admin/authRoutes"));
 app.use("/buyer", require("./routes/buyer/buyerRoutes"));
 app.use("/seller", require("./routes/seller/sellerRoutes"));
+const agentRoutes = require("./routes/admin/agentRoutes");
+app.use("/admin/agent/",agentRoutes);
 
 
 const errorHandler = require("./middleware/errorHandler");
