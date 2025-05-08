@@ -5,7 +5,7 @@ const validator = require("validator");
 const Buyer = require("../../models/Buyer");
 const Seller = require("../../models/Seller");
 const userModels = require("../../utils/userModals");
-const Agent = require("../../models/Agent");
+
 
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 const passwordRegex =
@@ -28,7 +28,10 @@ const signUp = async (req, res, next) => {
       res.status(400);
       throw new Error("Username must be valid");
     }
-
+    if (!passwordRegex.test(password)) {
+      res.status(400);
+      throw new Error("Password must be valid");
+    }
     const existingUser = await Admin.findOne({ email });
     if (existingUser) {
       res.status(400);
@@ -123,6 +126,34 @@ const Login = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+
+const getUserCounts = async (req, res) => {
+  try {
+    const [
+      totalBuyers,
+      pendingBuyers,
+      totalSellers,
+      pendingSellers
+    ] = await Promise.all([
+      Buyer.countDocuments(),
+      Buyer.countDocuments({ status: "pending" }),
+      Seller.countDocuments(),
+      Seller.countDocuments({ status: "pending" })
+    ]);
+
+    return res.status(200).json({
+      totalBuyers,
+      pendingBuyers,
+      totalSellers,
+      pendingSellers,
+      pendingApprovals: pendingBuyers + pendingSellers
+    });
+  } catch (error) {
+    console.error("Error getting user counts:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -241,6 +272,106 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const addBuyerByAdmin = async (req, res) => {
+  try {
+    const { buyerName, phone, email, password } = req.body;
+
+    // Check if the email already exists
+    const existingBuyer = await Buyer.findOne({ email });
+    if (existingBuyer) {
+      return res.status(400).json({ message: "Buyer already exists with this email" });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create and save the new buyer
+    const newBuyer = new Buyer({
+      buyerName,
+      phone,
+      email,
+      password: hashedPassword,
+    });
+
+    await newBuyer.save();
+
+    res.status(201).json({ message: "Buyer added successfully", buyer: newBuyer });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Register Seller
+const addSellerByAdmin = async (req, res, next) => {
+  try {
+    console.log("ddddd",req.body)
+      const {
+        sellerName,
+        email,
+        password,
+        phone,
+        companyName,
+        tradeLicenseNumber,
+        managerName,
+      } = req.body;
+  console.log("ddddsfeggdgh",req.file)
+      if (
+        !sellerName ||
+        !email ||
+        !password ||
+        !phone ||
+        !companyName ||
+        !tradeLicenseNumber ||
+        !managerName ||
+        !req.file
+      ) {
+        return res.status(400).json({ message: "All fields including trade license copy are required" });
+      }
+  
+      // Validations
+     
+  
+      if (!validator.isEmail(email)) {
+        return res.status(400).json({ message: "Invalid email address" });
+      }
+  
+      if (!validator.isMobilePhone(phone)) {
+        return res.status(400).json({ message: "Invalid phone number" });
+      }
+  
+      if (!passwordRegex.test(password)) {
+        return res.status(400).json({
+          message:
+            "Password must be 8–32 characters, with uppercase, lowercase, number, and special character",
+        });
+      }
+  
+      const existingSeller = await Seller.findOne({ email });
+      if (existingSeller) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+  
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      const newSeller = new Seller({
+        sellerName,
+        email,
+        password: hashedPassword,
+        phone,
+        companyName,
+        tradeLicenseNumber,
+        managerName,
+        tradeLicenseCopy: req.file.path, // Store file path
+      });
+  
+      await newSeller.save();
+  
+      res.status(201).json({ message: "Seller registered successfully" });
+    } catch (error) {
+      next(error);
+    }
+};
+
 const updateUserStatus = async (req, res) => {
   const { userId, role, status } = req.body;
 
@@ -341,31 +472,6 @@ const getUserById = async (req, res, next) => {
   }
 };
 
-const addAgent = async (req, res) => {
-  try {
-    const { name, email, phone, address } = req.body;
-
-    if (!name || !email || !phone || !address) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const existing = await Agent.findOne({ $or: [{ email }, { phone }] });
-    if (existing) {
-      return res
-        .status(409)
-        .json({ message: "Agent with this email or phone already exists" });
-    }
-
-    const newAgent = new Agent({ name, email, phone, address });
-    await newAgent.save();
-
-    res
-      .status(201)
-      .json({ message: "Agent added successfully", agent: newAgent });
-  } catch (error) {
-   next(error);
-  }
-};
 
 const deleteUser = async (req, res) => {
   const { role, id } = req.params;
@@ -384,6 +490,9 @@ const deleteUser = async (req, res) => {
 };
 
 
+
+
+
 module.exports = {
   signUp,
   Login,
@@ -392,6 +501,8 @@ module.exports = {
   updateUserStatus,
   getAllUsers,
   getUserById,
-  addAgent,
-  deleteUser
+  deleteUser,
+  addSellerByAdmin,
+  addBuyerByAdmin, 
+  getUserCounts
 };

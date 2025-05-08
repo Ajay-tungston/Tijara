@@ -23,5 +23,20 @@ const addAgent = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+ 
+const deleteAgent = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-module.exports = { addAgent };
+    const deletedAgent = await Agent.findByIdAndDelete(id);
+    if (!deletedAgent) {
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    res.status(200).json({ message: "Agent deleted successfully" });
+  } catch (error) {
+    console.error("Delete agent error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+module.exports = { addAgent, deleteAgent };

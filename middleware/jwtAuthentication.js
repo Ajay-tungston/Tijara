@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const Admin = require("../models/Admin"); // adjust path if needed
+const userModels = require("../utils/userModals"); // adjust path if needed
 require("dotenv").config();
 
 const jwtAuthentication = async (req, res, next) => {
@@ -16,9 +16,16 @@ const jwtAuthentication = async (req, res, next) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    const { id, role } = decoded;
+
+    const UserModel = userModels[role];
+    if (!UserModel) {
+      return res.status(403).json({ message: "Invalid user role" });
+    }
+
     try {
-      const admin = await Admin.findById(decoded.id);
-      if (!admin) {
+      const user = await UserModel.findById(id);
+      if (!user) {
         return res.status(404).json({ message: "Unauthorized" });
       }
 
@@ -30,5 +37,6 @@ const jwtAuthentication = async (req, res, next) => {
     }
   });
 };
+
 
 module.exports = jwtAuthentication;

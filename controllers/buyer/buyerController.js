@@ -174,7 +174,7 @@ const resetPassword = async (req, res, next) => {
     }
   };
 
-  const editBuyer = async (req, res) => {
+  const editBuyer = async (req, res, next) => {
     try {
       const buyerId = req.user.id; // ID from JWT
       const updates = req.body;
@@ -191,8 +191,7 @@ const resetPassword = async (req, res, next) => {
   
       res.status(200).json({ message: "Buyer updated successfully", buyer: updatedBuyer });
     } catch (error) {
-      console.error("Edit buyer error:", error);
-      res.status(500).json({ message: "Server error" });
+     next(error);
     }
   };
   

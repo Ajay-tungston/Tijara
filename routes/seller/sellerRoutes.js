@@ -8,12 +8,11 @@ const jwtAuthentication = require("../../middleware/jwtAuthentication");
 
 
 router.post("/seller-register", upload.single("tradeLicenseCopy"), registerSeller);
-router.post("/seller-login",loginSeller);
-router.post("/refresh-seller",refresh)
-router.post("/seller-send-otp",sendOtpForPasswordReset);
-router.post("/seller-verify-otp",verifyOtpForPasswordReset);
-router.post("/seller-reset-password",resetPassword);
-router.post("/seller-reset-password",resetPassword);
+router.post("/seller-login", loginSeller);
+router.post("/refresh-seller", refresh)
+router.post("/seller-send-otp", sendOtpForPasswordReset);
+router.post("/seller-verify-otp", verifyOtpForPasswordReset);
+router.post("/seller-reset-password", resetPassword);
 router.put("/edit/:id", jwtAuthentication, editSeller);
 
 module.exports=router;

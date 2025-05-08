@@ -1,7 +1,17 @@
 const express = require("express");
 const router = express.Router();
-const { addAgent } = require("../../controllers/admin/agentController");
+const { addAgent, deleteAgent } = require("../../controllers/admin/agentController");
+const jwtAuthentication = require("../../middleware/jwtAuthentication");
+const userModels=require ("../../utils/userModals");
 
-router.post("/add-agent", addAgent);
+const verifyAdmin = (req, res, next) => {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    next();
+  };
+
+router.post("/add-agent",jwtAuthentication, verifyAdmin, addAgent);
+router.delete("/delete-agent/:id",jwtAuthentication , verifyAdmin, deleteAgent);
 
 module.exports = router;

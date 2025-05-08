@@ -11,6 +11,9 @@ const passwordRegex =
 // Register Seller
 const registerSeller = async (req, res, next) => {
   try {
+    const cleanBody = Object.assign({}, req.body);
+
+    console.log("shshsjsj",req.body)
     const {
       sellerName,
       email,
@@ -19,7 +22,7 @@ const registerSeller = async (req, res, next) => {
       companyName,
       tradeLicenseNumber,
       managerName,
-    } = req.body;
+    } = cleanBody;
 
     if (
       !sellerName ||
@@ -33,8 +36,12 @@ const registerSeller = async (req, res, next) => {
     ) {
       return res.status(400).json({ message: "All fields including trade license copy are required" });
     }
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
 
-    // Validations
+ 
+    const imagePath = `${baseUrl}/uploads/licenses/${req.file.filename}`;
+
+    
     if (!usernameRegex.test(sellerName)) {
       return res.status(400).json({ message: "Invalid name format" });
     }
@@ -69,7 +76,7 @@ const registerSeller = async (req, res, next) => {
       companyName,
       tradeLicenseNumber,
       managerName,
-      tradeLicenseCopy: req.file.path, // Store file path
+      tradeLicenseCopy: imagePath, // Store file path
     });
 
     await newSeller.save();
@@ -211,25 +218,24 @@ const checkResetToken = async (req, res, next) => {
       }
     };
 
-    const editSeller = async (req, res) => {
+    const editSeller = async (req, res, next) => {
       try {
-        const { id } = req.params;
+        const sellerId=req.user.id
         const updates = req.body;
     
         // Ensure user is either the seller themself or admin
-        if (req.user.role !== "admin" && (req.user.role !== "seller" || req.user.id !== id)) {
+        if (req.user.role !== "seller") {
           return res.status(403).json({ message: "Unauthorized" });
         }
     
-        const updatedSeller = await Seller.findByIdAndUpdate(id, updates, { new: true });
+        const updatedSeller = await Seller.findByIdAndUpdate(sellerId, updates, { new: true });
         if (!updatedSeller) {
           return res.status(404).json({ message: "Seller not found" });
         }
     
         res.status(200).json({ message: "Seller updated successfully", seller: updatedSeller });
       } catch (error) {
-        console.error("Edit seller error:", error);
-        res.status(500).json({ message: "Server error" });
+        next(error);
       }
     };
 
