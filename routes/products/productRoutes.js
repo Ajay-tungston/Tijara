@@ -25,10 +25,10 @@ router.post(
     upload.array("images", 4), 
    addProduct
   );
-  router.get("/get-products", jwtAuthentication, allowAdminOrSeller,getAllProducts);
-  router.get("/get-productsbyid/:id", jwtAuthentication, allowAdminOrSeller,getProductById);
+  router.get("/get-products", jwtAuthentication, allowAdminOrSeller, getAllProducts);
+  router.get("/get-productsbyid/:id", jwtAuthentication, allowAdminOrSeller, getProductById);
   router.put("/update/:id", jwtAuthentication, upload.array("images", 5), allowAdminOrSeller, updateProduct); 
-   router.delete("/delete-product/:id",jwtAuthentication, allowAdminOrSeller,deleteProduct)
+  router.delete("/delete-product/:id",jwtAuthentication, allowAdminOrSeller,deleteProduct)
   
 
 module.exports = router;

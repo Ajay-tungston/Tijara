@@ -45,6 +45,12 @@ const sellerSchema = new mongoose.Schema(
         type: String,
         enum: ["pending", "approved", "rejected"],
         default: "pending",
+      },
+      subscription: {
+        plan: { type: String, enum: ['free', 'basic', 'pro'], default: 'free' },
+        startDate: Date,
+        endDate: Date,
+        isActive: { type: Boolean, default: false }
       }
       
   },

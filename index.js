@@ -23,8 +23,9 @@ app.use("/admin/auth", require("./routes/admin/authRoutes"));
 app.use("/buyer", require("./routes/buyer/buyerRoutes"));
 app.use("/seller", require("./routes/seller/sellerRoutes"));
 app.use("/product",require('./routes/products/productRoutes'))
-const agentRoutes = require("./routes/admin/agentRoutes");
-app.use("/admin/agent/",agentRoutes);
+app.use("/admin/agent",require("./routes/admin/agentRoutes"));
+app.use("/subscription",require("./routes/Subscription/subscribeRoutes"));
+app.use("/orders",require("./routes/order/orderRoutes"));
 
 
 const errorHandler = require("./middleware/errorHandler");

@@ -7,6 +7,7 @@ const productSchema = new mongoose.Schema(
       required: true,
       enum: ["fruits", "vegetables"], // Add more if needed
     },
+
     itemName: {
       type: String,
       required: true,
@@ -29,6 +30,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    expiryDate:{
+   type:Date,
+   required:true
+    },
     description: {
       type: String,
       maxlength: 500,
@@ -47,6 +52,15 @@ const productSchema = new mongoose.Schema(
       enum: ["Admin", "Seller"],
       required: true,
     },
+    seller: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Seller",
+     
+    },
+    
+    
+
+
   },
   { timestamps: true }
 );
