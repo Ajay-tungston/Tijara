@@ -432,7 +432,7 @@ export default function EditableProfileCard() {
         <div className="mt-6 w-full flex justify-end">
           <button
             onClick={handleEditToggle}
-            className="bg-white text-[#757575] shadow-[0_0_20px_rgba(0,0,0,0.1)] px-4 py-2 rounded-full flex items-center gap-2 font-[Nunito] font-bold transition"
+            className="bg-[#B3DB48] text-[#757575] shadow-[0_0_20px_rgba(0,0,0,0.1)] px-4 py-2 rounded-full flex items-center gap-2 font-[Nunito] font-bold transition"
           >
             <Pencil size={16} />
             {isEditing ? "Save" : "Edit"}

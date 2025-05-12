@@ -65,8 +65,8 @@ const VerificationCodeForm = () => {
       >
         <div className="flex flex-col items-center gap-[50px] h-full justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-4">Reset your password</h1>
-            <h2 className="text-lg font-bold mb-2">Verify</h2>
+            <h1 className="text-2xl font-[Nunito] font-bold mb-4">Reset your password</h1>
+            <h2 className="text-lg font-[Nunito] font-bold mb-2">Verify</h2>
             <p className="text-gray-900 whitespace-nowrap">
               Your code was sent to you via phone number.
             </p>
@@ -91,7 +91,7 @@ const VerificationCodeForm = () => {
           <div className="flex justify-center">
             <button
               disabled={!isOtpComplete}
-              className={`w-[350px] py-3 text-white font-semibold rounded-md transition ${
+              className={`w-[350px] py-3 text-white font-[Nunito] font-bold rounded-md transition ${
                 isOtpComplete ? 'bg-[#B3DB48]' : 'bg-[#CEDEA5] cursor-not-allowed'
               }`}
             >

@@ -4,7 +4,7 @@ import { Outlet } from "react-router-dom";
 
 function Layout() {
   return (
-    <div className="flex">
+    <div className="flex h-screen">
       {/* Sidebar on the left */}
       <Sidebar />
 

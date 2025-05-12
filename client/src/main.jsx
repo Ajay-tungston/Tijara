@@ -1,18 +1,4 @@
-// import { StrictMode } from 'react'
-// import { createRoot } from 'react-dom/client'
-// import './index.css'
-// import App from './App.jsx'
-// import { BrowserRouter } from 'react-router-dom'
 
-// createRoot(document.getElementById('root')).render(
-//   <StrictMode>
-//     <BrowserRouter>
-
-//     <App/>
-    
-//        </BrowserRouter>
-//   </StrictMode>,
-// )
 
 
 import React from "react";
@@ -20,21 +6,16 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
+import { Provider } from "react-redux";
+import { store } from "./Redux/store";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <App />
+  <Provider store={store}>
+  <App />
+  </Provider>
+    
   </BrowserRouter>
 );
 
-// import React from 'react';
-// import ReactDOM from 'react-dom/client';
-// import { Provider } from 'react-redux';
-// import { store } from './redux/store';
-// import App from './App';
 
-// ReactDOM.createRoot(document.getElementById('root')).render(
-//   <Provider store={store}>
-//     <App />
-//   </Provider>
-// );
